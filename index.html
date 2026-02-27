@@ -452,7 +452,7 @@ function triggerWin() {
   setTimeout(() => {
     banner.style.opacity = '0';
     lvlIdx++;
-    if (lvlIdx < LEVELS.length) { startLevel(lvlIdx); }
+    if (lvlIdx < LEVELS.length) { gameState = 'playing'; startLevel(lvlIdx); }
     else { showGameOver(true); }
   }, 2500);
 }
