@@ -2,190 +2,70 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Lava Step</title>
 <script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/dist/Tone.js"></script>
-<script type="importmap">
-{ "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
-} }
-</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"}}</script>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:#C4612A; overflow:hidden; font-family:monospace; }
-
-canvas#threeCanvas {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  touch-action:none;
-}
-canvas#hud {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  pointer-events:none; z-index:2;
-}
-
-.screen {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  z-index:10; transition:opacity 0.3s;
-}
-.screen.hidden { display:none; }
-
-/* START SCREEN */
-#startScreen {
-  background:rgba(20,8,2,0.72);
-  backdrop-filter:blur(2px);
-}
-
-.corner-bracket {
-  position:absolute;
-  width:44px; height:44px;
-  pointer-events:none;
-}
-.corner-bracket svg { width:44px; height:44px; }
-.cb-tl { top:24px; left:24px; }
-.cb-tr { top:24px; right:24px; }
-.cb-bl { bottom:24px; left:24px; }
-.cb-br { bottom:24px; right:24px; }
-
-.start-tagline {
-  font-family:monospace;
-  font-size:13px;
-  color:#EFF0E8;
-  opacity:0.7;
-  letter-spacing:0.1em;
-  margin-top:16px;
-  text-transform:uppercase;
-  text-align:center;
-}
-.blink-tap {
-  font-family:monospace;
-  font-size:15px;
-  color:#F5D060;
-  letter-spacing:0.12em;
-  margin-top:24px;
-  animation:blink 1s step-end infinite;
-  text-transform:uppercase;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-@keyframes titleReveal { from{opacity:0;letter-spacing:20px} to{opacity:1;letter-spacing:8px} }
-@keyframes drawBracket { from{stroke-dashoffset:40} to{stroke-dashoffset:0} }
-
-/* INSTRUCTIONS SCREEN */
-#instructionsScreen {
-  background:rgba(20,8,2,0.88);
-  transition:opacity 0.3s;
-}
-.instr-box {
-  border:1.5px solid #F5D060;
-  padding:28px 36px;
-  max-width:420px;
-  text-align:center;
-}
-.instr-title {
-  font-family:monospace;
-  font-size:18px;
-  font-weight:900;
-  color:#F5D060;
-  letter-spacing:0.2em;
-  margin-bottom:20px;
-  text-transform:uppercase;
-}
-.instr-line {
-  font-family:monospace;
-  font-size:13px;
-  color:#EFF0E8;
-  letter-spacing:0.08em;
-  margin:8px 0;
-  text-transform:uppercase;
-  opacity:0.85;
-}
-.instr-sep {
-  width:100%; height:1px;
-  background:#F5D060; opacity:0.3;
-  margin:16px 0;
-}
-.instr-tap {
-  font-family:monospace;
-  font-size:13px;
-  color:#F5D060;
-  letter-spacing:0.1em;
-  margin-top:20px;
-  animation:blink 1s step-end infinite;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#C4612A;font-family:monospace}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.3s}
+.screen.hidden{opacity:0;pointer-events:none}
+#startScreen{background:rgba(43,16,0,0.55)}
+#instrScreen{background:rgba(43,16,0,0.85);gap:20px}
+.instr-title{color:#F5D060;font-size:clamp(16px,4vw,22px);letter-spacing:0.25em;text-transform:uppercase}
+.instr-rule{color:#EFF0E8;font-size:clamp(12px,3vw,15px);letter-spacing:0.1em;text-align:center;line-height:1.8}
+.tap-hint{color:#F5D060;font-size:clamp(11px,2.5vw,13px);margin-top:16px;animation:blink 1s infinite;letter-spacing:0.2em}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+#flash{position:fixed;inset:0;z-index:9;background:#FF3A1A;opacity:0;pointer-events:none;transition:opacity 0.08s}
+#levelBanner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:8;color:#F5D060;font-size:clamp(24px,6vw,40px);letter-spacing:0.3em;text-shadow:0 0 30px #F5D060;opacity:0;pointer-events:none;transition:opacity 0.4s;text-align:center}
 </style>
 </head>
 <body>
-
-<canvas id="threeCanvas"></canvas>
+<canvas id="c"></canvas>
 <canvas id="hud"></canvas>
 
-<!-- START SCREEN -->
 <div id="startScreen" class="screen">
-  <!-- corner brackets -->
-  <div class="corner-bracket cb-tl">
-    <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="44,4 4,4 4,44" stroke="#F5D060" stroke-width="2.5"
-        stroke-dasharray="80" stroke-dashoffset="80"
-        style="animation:drawBracket 0.8s ease-out 0.0s forwards"/>
-    </svg>
-  </div>
-  <div class="corner-bracket cb-tr">
-    <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="0,4 40,4 40,44" stroke="#F5D060" stroke-width="2.5"
-        stroke-dasharray="80" stroke-dashoffset="80"
-        style="animation:drawBracket 0.8s ease-out 0.1s forwards"/>
-    </svg>
-  </div>
-  <div class="corner-bracket cb-bl">
-    <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="44,40 4,40 4,0" stroke="#F5D060" stroke-width="2.5"
-        stroke-dasharray="80" stroke-dashoffset="80"
-        style="animation:drawBracket 0.8s ease-out 0.2s forwards"/>
-    </svg>
-  </div>
-  <div class="corner-bracket cb-br">
-    <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <polyline points="0,40 40,40 40,0" stroke="#F5D060" stroke-width="2.5"
-        stroke-dasharray="80" stroke-dashoffset="80"
-        style="animation:drawBracket 0.8s ease-out 0.3s forwards"/>
-    </svg>
-  </div>
-
-  <svg width="100%" height="120" viewBox="0 0 400 120" style="max-width:500px;overflow:visible">
+  <svg width="100%" height="130" viewBox="0 0 400 130" style="max-width:500px;overflow:visible">
     <defs>
-      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur"/>
         <feComposite in="SourceGraphic" in2="blur" operator="over"/>
       </filter>
     </defs>
-    <text x="50%" y="70" text-anchor="middle" font-family="monospace" font-size="52"
+    <text x="50%" y="72" text-anchor="middle" font-family="monospace" font-size="52"
           font-weight="900" fill="#F5D060" filter="url(#glow)"
           style="animation:titleReveal 1.2s ease-out forwards;opacity:0">LAVA STEP</text>
   </svg>
-
-  <p class="start-tagline">You don't cross the lava.<br>You conduct it three beats ahead.</p>
-  <p class="start-tagline" style="margin-top:12px;">Tap the lava to freeze it</p>
-  <p class="blink-tap">Tap to begin</p>
+  <style>
+    @keyframes titleReveal{from{opacity:0;letter-spacing:20px}to{opacity:1;letter-spacing:6px}}
+    .bracket{position:fixed;width:30px;height:30px;border-color:#F5D060;border-style:solid;opacity:0;animation:drawBracket 0.8s ease-out forwards}
+    .tl{top:20px;left:20px;border-width:2px 0 0 2px;animation-delay:0.2s}
+    .tr{top:20px;right:20px;border-width:2px 2px 0 0;animation-delay:0.3s}
+    .bl{bottom:20px;left:20px;border-width:0 0 2px 2px;animation-delay:0.4s}
+    .br{bottom:20px;right:20px;border-width:0 2px 2px 0;animation-delay:0.5s}
+    @keyframes drawBracket{from{opacity:0;transform:scale(0.6)}to{opacity:1;transform:scale(1)}}
+  </style>
+  <div class="bracket tl"></div>
+  <div class="bracket tr"></div>
+  <div class="bracket bl"></div>
+  <div class="bracket br"></div>
+  <p style="color:#EFF0E8;font-size:clamp(10px,2.5vw,13px);letter-spacing:0.15em;margin-top:8px;opacity:0.8">TAP THE LAVA TO FREEZE IT</p>
+  <p class="tap-hint">TAP TO BEGIN</p>
 </div>
 
-<!-- INSTRUCTIONS SCREEN -->
-<div id="instructionsScreen" class="screen hidden">
-  <div class="instr-box">
-    <div class="instr-title">How to Play</div>
-    <div class="instr-line">Tap lava to freeze a platform</div>
-    <div class="instr-line">Cross before it melts</div>
-    <div class="instr-line">Tap ahead for score multiplier</div>
-    <div class="instr-sep"></div>
-    <div class="instr-line">×2 — 1 beat ahead</div>
-    <div class="instr-line">×3 — 2 beats ahead</div>
-    <div class="instr-line">×4 — 3 beats ahead</div>
-    <div class="instr-sep"></div>
-    <div class="instr-line">Read the shadow to judge the flow</div>
-    <div class="instr-line">Shatter boulders for bonus points</div>
-    <div class="instr-tap">Tap to start</div>
-  </div>
+<div id="instrScreen" class="screen hidden">
+  <p class="instr-title">HOW TO PLAY</p>
+  <p class="instr-rule">TAP GLOWING LAVA AHEAD OF YOU<br>TO FREEZE A CRYSTAL PLATFORM</p>
+  <p class="instr-rule" style="color:#F5D060">TAP EARLIER = HIGHER MULTIPLIER<br>×2 · ×3 · ×4</p>
+  <p class="instr-rule" style="font-size:clamp(10px,2.5vw,12px);opacity:0.7">Read shadow angles — they reveal the current speed<br>Faster currents melt your crystal faster</p>
+  <p class="tap-hint">TAP TO START</p>
 </div>
+
+<div id="flash"></div>
+<div id="levelBanner"></div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -193,1227 +73,537 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-// ─── GLOBALS ─────────────────────────────────────────────────────────────────
-let gameState = 'start'; // 'start' | 'instructions' | 'playing' | 'dead' | 'win' | 'lose'
-let score = 0;
-let lives = 3;
-let currentLevel = 0;
-let playerZ = 0;        // player Z position (negative = forward)
-let playerX = 0;
-let playerY = 0.4;
-let playerBobTime = 0;
-let playerSinking = false;
-let playerSinkTimer = 0;
-let respawnTimer = 0;
-let graceTimer = 0;
-let graceActive = false;
-let footstepSide = 0;
-let footstepTimer = 0;
-let deathFlashTimer = 0;
-let firstCrystalEver = true;
-let checkpointZ = 0;
-let checkpointCrossings = 0;
-let totalCrossings = 0;
-let noDeathThisLevel = true;
-let levelStartTime = 0;
-let levelParTime = [45000, 60000, 75000, 90000, 120000];
-let multiplierChain = 0;
-let idleAutoPlay = false;
-let idleTimer = 0;
-let idlePhase = 0;
-let idleCrystalA = null;
-let idleCrystalB = null;
-let idlePlayerX = 0;
-let idlePlayerZ = 0;
-let idlePlayerY = 0.4;
-let clock = new THREE.Clock();
-
-// ─── LEVEL CONFIG ─────────────────────────────────────────────────────────────
-const LEVELS = [
-  { // Level 1
-    numChannels: 2,
-    channelSpeeds: [1.5, 1.5],
-    channelXPositions: [-1.5, 1.5],
-    playerSpeed: 1.2,
-    boulders: [],
-    eddies: false,
-    speedPulses: false,
-    parTime: 45000
-  },
-  { // Level 2
-    numChannels: 3,
-    channelSpeeds: [1.5, 3.0, 1.5],
-    channelXPositions: [-3, 0, 3],
-    playerSpeed: 1.4,
-    boulders: [],
-    eddies: true,
-    speedPulses: false,
-    parTime: 60000
-  },
-  { // Level 3
-    numChannels: 3,
-    channelSpeeds: [2.0, 3.5, 2.0],
-    channelXPositions: [-3, 0, 3],
-    playerSpeed: 1.6,
-    boulders: [{ lane: 0, speed: 2.5 }],
-    eddies: false,
-    speedPulses: false,
-    parTime: 75000
-  },
-  { // Level 4
-    numChannels: 4,
-    channelSpeeds: [1.5, 4.5, 3.0, 4.5],
-    channelXPositions: [-4.5, -1.5, 1.5, 4.5],
-    playerSpeed: 1.8,
-    boulders: [{ lane: 1, speed: 3.5 }, { lane: 3, speed: 3.5 }],
-    eddies: true,
-    speedPulses: false,
-    parTime: 90000
-  },
-  { // Level 5
-    numChannels: 4,
-    channelSpeeds: [2.0, 5.0, 4.5, 3.5],
-    channelXPositions: [-4.5, -1.5, 1.5, 4.5],
-    playerSpeed: 2.0,
-    boulders: [{ lane: 0, speed: 4.5 }, { lane: 2, speed: 4.5 }],
-    eddies: true,
-    speedPulses: true,
-    parTime: 120000
-  }
-];
-
-// ─── THREE.JS SETUP ───────────────────────────────────────────────────────────
-const canvas = document.getElementById('threeCanvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+// ── RENDERER ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
-
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xC4612A, 18, 40);
-
-const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 12, 10);
+scene.background = new THREE.Color(0xC4612A);
+scene.fog = new THREE.Fog(0xC4612A, 22, 42);
+const camera = new THREE.PerspectiveCamera(52, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0, 12, 12);
 camera.lookAt(0, 0, -2);
-
-// Post-processing
 const composer = new EffectComposer(renderer);
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
-const bloomPass = new UnrealBloomPass(
-  new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.8, 0.4, 0.55
-);
-composer.addPass(bloomPass);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.8, 0.4, 0.55);
+composer.addPass(bloom);
+scene.add(new THREE.AmbientLight(0xC4612A, 0.6));
+const sun = new THREE.DirectionalLight(0xFFAA44, 1.4); sun.position.set(4,10,6); scene.add(sun);
+const rimL = new THREE.PointLight(0xF5D060, 0.8, 8); rimL.position.set(-3,3,2); scene.add(rimL);
+const lavaGlowL = new THREE.PointLight(0xFF5500, 1.2, 14); lavaGlowL.position.set(0,0.5,-5); scene.add(lavaGlowL);
 
-// Lights
-const ambientLight = new THREE.AmbientLight(0xC4612A, 0.6);
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xFFAA44, 1.4);
-dirLight.position.set(4, 10, 6);
-dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 1024;
-dirLight.shadow.mapSize.height = 1024;
-scene.add(dirLight);
-const rimLight = new THREE.PointLight(0xF5D060, 0.8, 8);
-rimLight.position.set(-3, 3, 2);
-scene.add(rimLight);
-const lavaGlow = new THREE.PointLight(0xFF5500, 1.2, 12);
-lavaGlow.position.set(0, 0.5, -5);
-scene.add(lavaGlow);
-
-// ─── HUD CANVAS ───────────────────────────────────────────────────────────────
-const hudCanvas = document.getElementById('hud');
-let hud = null;
-
-function initHud() {
-  if (!hud) {
-    hud = hudCanvas.getContext('2d');
-    resizeHud();
+// ── HUD ───────────────────────────────────────────────────────────────────────
+const hud = document.getElementById('hud');
+hud.width = window.innerWidth; hud.height = window.innerHeight;
+let ctx = null;
+function ensureCtx() {
+  if (!ctx && hud && typeof hud.getContext === 'function') {
+    ctx = hud.getContext('2d');
   }
+  return ctx;
 }
 
-function resizeHud() {
-  hudCanvas.width = window.innerWidth;
-  hudCanvas.height = window.innerHeight;
-}
-// Defer init - called before first drawHud
-function ensureHud() {
-  if (!hud && hudCanvas && typeof hudCanvas.getContext === 'function') {
-    hud = hudCanvas.getContext('2d');
-    resizeHud();
-  }
-}
-
-// ─── SCENE OBJECTS ────────────────────────────────────────────────────────────
-const sceneObjects = {
-  floor: null,
-  lavaChannels: [],
-  basaltPlatforms: [],
-  crystals: [],
-  boulderMeshes: [],
-  emberParticles: [],
-  playerMesh: null,
-  playerRim: null,
-  exitArch: null,
-  exitLight: null,
-  shadows: [],
-  idlePlayer: null
-};
-
-let levelDef = null;
-let levelLength = 28; // world units, Z from 0 to -28
-let exitZ = -26;
-
-// ─── MATERIAL LIBRARY ─────────────────────────────────────────────────────────
-const MAT = {
-  floor: new THREE.MeshStandardMaterial({ color: 0xC4612A, roughness: 0.9, metalness: 0.1 }),
-  basalt: new THREE.MeshStandardMaterial({ color: 0xEFF0E8, roughness: 0.8, metalness: 0.05 }),
-  lava: new THREE.MeshStandardMaterial({ color: 0xFF5500, roughness: 0.3, metalness: 0, emissive: 0xFF3300, emissiveIntensity: 0.6 }),
-  crystal: new THREE.MeshStandardMaterial({ color: 0xF5D060, roughness: 0.1, metalness: 0.8, emissive: 0xF5D060, emissiveIntensity: 0.5 }),
-  crystalDanger: new THREE.MeshStandardMaterial({ color: 0xFF3A1A, roughness: 0.1, metalness: 0.8, emissive: 0xFF3A1A, emissiveIntensity: 0.8 }),
-  playerBody: new THREE.MeshStandardMaterial({ color: 0xEFF0E8, roughness: 0.4, metalness: 0.1 }),
-  playerRim: new THREE.MeshStandardMaterial({ color: 0xF5D060, roughness: 0.2, metalness: 0.9, emissive: 0xF5D060, emissiveIntensity: 0.9 }),
-  exitArch: new THREE.MeshStandardMaterial({ color: 0xF5D060, roughness: 0.1, metalness: 0.9, emissive: 0xF5D060, emissiveIntensity: 1.0 }),
-  shadow: new THREE.MeshBasicMaterial({ color: 0xC4612A, transparent: true, opacity: 0.0, depthWrite: false }),
-  boulder: new THREE.MeshStandardMaterial({ color: 0x444433, roughness: 0.9, metalness: 0.2 })
-};
-
-// ─── BUILD SCENE ──────────────────────────────────────────────────────────────
-function clearScene() {
-  // Remove all game objects
-  [
-    ...sceneObjects.lavaChannels,
-    ...sceneObjects.basaltPlatforms,
-    ...sceneObjects.crystals.map(c => c.mesh),
-    ...sceneObjects.crystals.map(c => c.shadowMesh).filter(Boolean),
-    ...sceneObjects.boulderMeshes,
-    ...sceneObjects.emberParticles
-  ].forEach(obj => {
-    if (obj) scene.remove(obj);
-  });
-  if (sceneObjects.floor) scene.remove(sceneObjects.floor);
-  if (sceneObjects.playerMesh) scene.remove(sceneObjects.playerMesh);
-  if (sceneObjects.playerRim) scene.remove(sceneObjects.playerRim);
-  if (sceneObjects.exitArch) scene.remove(sceneObjects.exitArch);
-  if (sceneObjects.exitLight) scene.remove(sceneObjects.exitLight);
-  if (sceneObjects.idlePlayer) scene.remove(sceneObjects.idlePlayer);
-
-  sceneObjects.lavaChannels = [];
-  sceneObjects.basaltPlatforms = [];
-  sceneObjects.crystals = [];
-  sceneObjects.boulderMeshes = [];
-  sceneObjects.emberParticles = [];
-  sceneObjects.shadows = [];
-  sceneObjects.floor = null;
-  sceneObjects.playerMesh = null;
-  sceneObjects.playerRim = null;
-  sceneObjects.exitArch = null;
-  sceneObjects.exitLight = null;
-  sceneObjects.idlePlayer = null;
-}
-
-function buildScene(levelIndex, idleMode) {
-  clearScene();
-  levelDef = LEVELS[levelIndex];
-
-  // Floor (wide ambient plane)
-  const floorGeo = new THREE.PlaneGeometry(30, 60);
-  const floorMesh = new THREE.Mesh(floorGeo, MAT.floor);
-  floorMesh.rotation.x = -Math.PI / 2;
-  floorMesh.position.set(0, -0.05, -14);
-  floorMesh.receiveShadow = true;
-  scene.add(floorMesh);
-  sceneObjects.floor = floorMesh;
-
-  // Lava channel layout
-  // Layout: entry basalt, then alternating channels/basalts, then exit
-  const channelWidth = 2.0;
-  const basaltStripWidth = 1.2;
-  const numChannels = levelDef.numChannels;
-  const xs = levelDef.channelXPositions;
-
-  // Lava channels (running along Z axis, x-positioned)
-  for (let i = 0; i < numChannels; i++) {
-    const x = xs[i];
-    const lavaGeo = new THREE.PlaneGeometry(channelWidth, levelLength);
-    const lavaMat = MAT.lava.clone();
-    lavaMat.emissiveIntensity = 0.6 + Math.random() * 0.2;
-    const lavaMesh = new THREE.Mesh(lavaGeo, lavaMat);
-    lavaMesh.rotation.x = -Math.PI / 2;
-    lavaMesh.position.set(x, 0.01, -levelLength / 2);
-    scene.add(lavaMesh);
-    sceneObjects.lavaChannels.push({ mesh: lavaMesh, x, width: channelWidth, speed: levelDef.channelSpeeds[i], index: i });
-  }
-
-  // Basalt strips between channels
-  // Entry strip
-  const entryBasalt = makeBasaltStrip(0, -1, 20, 3, idleMode ? 0.0 : 2.0);
-  sceneObjects.basaltPlatforms.push(entryBasalt);
-
-  // Strips between channels
-  if (numChannels > 1) {
-    for (let i = 0; i < numChannels - 1; i++) {
-      const midX = (xs[i] + xs[i + 1]) / 2;
-      const gap = Math.abs(xs[i + 1] - xs[i]) - channelWidth;
-      if (gap > 0.1) {
-        const bridgeGeo = new THREE.PlaneGeometry(gap, levelLength);
-        const bridgeMesh = new THREE.Mesh(bridgeGeo, MAT.basalt);
-        bridgeMesh.rotation.x = -Math.PI / 2;
-        bridgeMesh.position.set(midX, 0.02, -levelLength / 2);
-        bridgeMesh.receiveShadow = true;
-        scene.add(bridgeMesh);
-        sceneObjects.basaltPlatforms.push(bridgeMesh);
-      }
-    }
-  }
-
-  // Left/right border basalt (walkable sides)
-  const leftX = xs[0] - channelWidth / 2 - 2;
-  const rightX = xs[numChannels - 1] + channelWidth / 2 + 2;
-  addBorderBasalt(leftX, 4);
-  addBorderBasalt(rightX, 4);
-
-  // Exit basalt strip
-  const exitBasalt = makeBasaltStrip(0, exitZ - 1, 20, 3);
-  sceneObjects.basaltPlatforms.push(exitBasalt);
-
-  // Exit arch
-  buildExitArch();
-
-  // Player
-  if (!idleMode) {
-    buildPlayer();
-  } else {
-    buildIdlePlayer();
-  }
-
-  // Boulder setup
-  if (!idleMode && levelDef.boulders.length > 0) {
-    setupBoulders();
-  }
-
-  // Ember particles
-  setupEmbers(idleMode);
-}
-
-function makeBasaltStrip(x, z, w, d, startY) {
-  const geo = new THREE.PlaneGeometry(w, d);
-  const mesh = new THREE.Mesh(geo, MAT.basalt);
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(x, 0.02, z - d / 2);
-  mesh.receiveShadow = true;
-  scene.add(mesh);
-  return mesh;
-}
-
-function addBorderBasalt(x, w) {
-  const geo = new THREE.PlaneGeometry(w, levelLength + 6);
-  const mesh = new THREE.Mesh(geo, MAT.floor.clone());
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(x, 0.0, -levelLength / 2);
-  scene.add(mesh);
-}
-
-function buildExitArch() {
-  // Hexagonal gate at exit
-  const archGroup = new THREE.Group();
-  archGroup.position.set(0, 0, exitZ);
-
-  // Ring segments
-  const segments = 6;
-  for (let i = 0; i < segments; i++) {
-    const angle = (i / segments) * Math.PI * 2;
-    const nextAngle = ((i + 1) / segments) * Math.PI * 2;
-    const r = 1.6;
-    const geo = new THREE.BoxGeometry(0.2, 0.2, 0.6);
-    const mesh = new THREE.Mesh(geo, MAT.exitArch.clone());
-    const midAngle = (angle + nextAngle) / 2;
-    mesh.position.set(Math.cos(midAngle) * r, Math.sin(midAngle) * r + 1.2, 0);
-    mesh.rotation.z = midAngle + Math.PI / 2;
-    archGroup.add(mesh);
-  }
-
-  // Center glow
-  const centerGeo = new THREE.CircleGeometry(0.8, 6);
-  const centerMat = new THREE.MeshBasicMaterial({ color: 0xF5D060, transparent: true, opacity: 0.3 });
-  const centerMesh = new THREE.Mesh(centerGeo, centerMat);
-  centerMesh.rotation.x = -Math.PI / 2;
-  centerMesh.position.y = 0.03;
-  archGroup.add(centerMesh);
-
-  scene.add(archGroup);
-  sceneObjects.exitArch = archGroup;
-
-  const exitLightObj = new THREE.PointLight(0xF5D060, 2.0, 6);
-  exitLightObj.position.set(0, 2, exitZ);
-  scene.add(exitLightObj);
-  sceneObjects.exitLight = exitLightObj;
-}
-
-function buildPlayer() {
-  const bodyGeo = new THREE.CapsuleGeometry(0.3, 0.8, 8, 16);
-  const bodyMesh = new THREE.Mesh(bodyGeo, MAT.playerBody);
-  bodyMesh.castShadow = true;
-  scene.add(bodyMesh);
-  sceneObjects.playerMesh = bodyMesh;
-
-  // Rim glow (slightly larger capsule)
-  const rimGeo = new THREE.CapsuleGeometry(0.33, 0.84, 8, 16);
-  const rimMat = MAT.playerRim.clone();
-  rimMat.transparent = true;
-  rimMat.opacity = 0.4;
-  rimMat.side = THREE.BackSide;
-  const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-  scene.add(rimMesh);
-  sceneObjects.playerRim = rimMesh;
-}
-
-function buildIdlePlayer() {
-  const bodyGeo = new THREE.CapsuleGeometry(0.3, 0.8, 8, 16);
-  const bodyMesh = new THREE.Mesh(bodyGeo, MAT.playerBody.clone());
-  bodyMesh.castShadow = true;
-  idlePlayerX = 0;
-  idlePlayerZ = 1.5;
-  idlePlayerY = 0.4 + Math.sin(Date.now() * 0.001 * 1.4) * 0.04;
-  bodyMesh.position.set(idlePlayerX, idlePlayerY, idlePlayerZ);
-  scene.add(bodyMesh);
-  sceneObjects.idlePlayer = bodyMesh;
-}
-
-function setupBoulders() {
-  levelDef.boulders.forEach((bDef, idx) => {
-    const geo = new THREE.SphereGeometry(0.6, 12, 12);
-    const mesh = new THREE.Mesh(geo, MAT.boulder.clone());
-    const laneX = levelDef.channelXPositions[bDef.lane];
-    mesh.position.set(laneX - 8, 0.6, -levelLength * 0.4 - idx * 6);
-    mesh.castShadow = true;
-    scene.add(mesh);
-    sceneObjects.boulderMeshes.push({
-      mesh,
-      laneX,
-      laneIndex: bDef.lane,
-      speed: bDef.speed,
-      direction: 1,
-      active: true,
-      warnTimer: 0
-    });
-  });
-}
-
-function setupEmbers(idleMode) {
-  const count = 20;
-  for (let i = 0; i < count; i++) {
-    const geo = new THREE.SphereGeometry(0.05, 4, 4);
-    const mat = new THREE.MeshBasicMaterial({ color: 0xFF6600, transparent: true, opacity: 0.9 });
-    const mesh = new THREE.Mesh(geo, mat);
-    const ci = Math.floor(Math.random() * levelDef.numChannels);
-    const cx = levelDef.channelXPositions[ci];
-    mesh.position.set(
-      cx + (Math.random() - 0.5) * 1.8,
-      Math.random() * 0.8,
-      -Math.random() * levelLength
-    );
-    scene.add(mesh);
-    sceneObjects.emberParticles.push({
-      mesh,
-      channelX: cx,
-      channelIndex: ci,
-      age: Math.random() * 2.0,
-      lifespan: 1.5 + Math.random() * 0.5,
-      riseSpeed: 0.25 + Math.random() * 0.15,
-      drift: (Math.random() - 0.5) * 0.3
-    });
-  }
-}
-
-// ─── CRYSTAL SYSTEM ──────────────────────────────────────────────────────────
+// ── LEVELS ────────────────────────────────────────────────────────────────────
+// channelBands: horizontal lava bands the player walks THROUGH
+// zCenter = Z position of band center; player advances in -Z direction
+// band width (Z) = 2.0 units; player must cross each band
+const LEVELS = [
+  { bands:[{zC:-3,spd:1.5},{zC:-8,spd:1.5}],                          pSpd:1.2, boulders:[], speedPulse:false },
+  { bands:[{zC:-3,spd:1.5},{zC:-8,spd:3.0,eddy:true},{zC:-13,spd:1.5}], pSpd:1.4, boulders:[], speedPulse:false },
+  { bands:[{zC:-3,spd:2.0},{zC:-8,spd:3.5},{zC:-13,spd:2.0}],         pSpd:1.6, boulders:[{band:1}], speedPulse:false },
+  { bands:[{zC:-3,spd:1.5},{zC:-7,spd:4.5},{zC:-11,spd:3.0},{zC:-15,spd:4.5}], pSpd:1.8, boulders:[{band:1},{band:3}], speedPulse:false },
+  { bands:[{zC:-3,spd:2.0},{zC:-7,spd:5.0},{zC:-11,spd:4.5},{zC:-15,spd:3.5}], pSpd:2.0, boulders:[{band:0},{band:2}], speedPulse:true }
+];
+const BAND_HALF = 1.0; // half-width in Z of each channel
+const EXIT_Z = -22;
 const BEAT_MS = 638; // 94 BPM
 
-function getCrystalLifetime(channelIndex, eddyBoost) {
-  const speed = levelDef.channelSpeeds[channelIndex];
-  let lifetime;
-  if (speed <= 1.5) lifetime = 4600;
-  else if (speed <= 3.5) lifetime = 3700;
-  else lifetime = 2500;
-  if (eddyBoost) lifetime *= 1.4;
-  return lifetime;
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let gameState = 'start';
+let score = 0, lives = 3, lvlIdx = 0;
+let pZ = 2.0; // player Z, advances toward EXIT_Z
+let pSink = 0, sinkTimer = 0, respTimer = 0;
+let graceTimer = 0, graceOn = false;
+let chkZ = 2.0, crossings = 0, noDeathLvl = true;
+let levelStartT = 0, firstCrystal = true;
+let lvlDef = LEVELS[0];
+let crystals = [], boulderObjs = [], embers = [];
+let sceneGroup = new THREE.Group(); scene.add(sceneGroup);
+let hasActed = false;
+
+// ── AUDIO ─────────────────────────────────────────────────────────────────────
+let audioOk = false;
+let bassOsc, bassLFO, arpNotes = ['A5','B5','C#5','E5','G5'], arpIdx = 0;
+let sfxCrystal, sfxMelt, sfxDeath, sfxWin;
+
+async function initAudio() {
+  if (audioOk) return;
+  await Tone.start();
+  audioOk = true;
+  bassOsc = new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:0.1,decay:0,sustain:1,release:0.1}}).toDestination();
+  bassOsc.volume.value = -18;
+  bassOsc.triggerAttack('D1');
+  bassLFO = new Tone.LFO(0.15, -6, 2).connect(bassOsc.volume).start();
+
+  sfxCrystal = new Tone.MetalSynth({frequency:1200,envelope:{attack:0.001,decay:0.06,release:0.1},resonance:3200,modulationIndex:32}).toDestination();
+  sfxCrystal.volume.value = -8;
+
+  sfxMelt = new Tone.NoiseSynth({noise:{type:'white'},envelope:{attack:0.05,decay:0.6,sustain:0,release:0.1}}).connect(new Tone.Filter(2000,'lowpass').toDestination());
+  sfxMelt.volume.value = -18;
+
+  sfxDeath = new Tone.NoiseSynth({noise:{type:'brown'},envelope:{attack:0.01,decay:1.2,sustain:0,release:0.2}}).connect(new Tone.Filter(300,'lowpass').toDestination());
+  sfxDeath.volume.value = -12;
+
+  sfxWin = new Tone.PolySynth(Tone.Synth).toDestination();
+  sfxWin.volume.value = -12;
 }
 
-function placeCrystal(worldX, worldZ, channelIndex, fromIdle) {
-  const speed = levelDef.channelSpeeds[channelIndex];
-  const isEddy = levelDef.eddies && Math.random() < 0.25;
-  const lifetime = getCrystalLifetime(channelIndex, isEddy);
+function playArp() {
+  if (!audioOk || !sfxCrystal) return;
+  try { sfxCrystal.triggerAttackRelease(arpNotes[arpIdx % arpNotes.length], '16n'); arpIdx++; } catch(e) {}
+}
 
-  const geo = new THREE.CylinderGeometry(0.35, 0.45, 0.18, 6);
+// ── BUILD LEVEL ───────────────────────────────────────────────────────────────
+const MAT = {
+  basalt: new THREE.MeshStandardMaterial({color:0x1A1008,roughness:0.9}),
+  lava:   new THREE.MeshStandardMaterial({color:0xFF4400,emissive:new THREE.Color(0xFF3A1A),emissiveIntensity:1.4,roughness:0.3}),
+  crystal:new THREE.MeshStandardMaterial({color:0xEFF0E8,emissive:new THREE.Color(0xF5D060),emissiveIntensity:0.9,roughness:0.1,metalness:0.4,transparent:true,opacity:0.92}),
+  exit:   new THREE.MeshStandardMaterial({color:0xF5D060,emissive:new THREE.Color(0xF5D060),emissiveIntensity:2.0}),
+  player: new THREE.MeshStandardMaterial({color:0xEFF0E8,emissive:new THREE.Color(0xEFF0E8),emissiveIntensity:0.3}),
+  prim:   new THREE.MeshStandardMaterial({color:0xF5D060,emissive:new THREE.Color(0xF5D060),emissiveIntensity:1.0,transparent:true,opacity:0.35}),
+};
+let playerMesh, playerRim, lavaMeshes = [];
+
+function buildLevel(idx) {
+  // Clear
+  while (sceneGroup.children.length) sceneGroup.remove(sceneGroup.children[0]);
+  crystals.forEach(c => { scene.remove(c.mesh); if (c.shadow) scene.remove(c.shadow); });
+  crystals = [];
+  boulderObjs.forEach(b => scene.remove(b.mesh)); boulderObjs = [];
+  embers.forEach(e => scene.remove(e.mesh)); embers = [];
+  lavaMeshes = [];
+
+  lvlDef = LEVELS[idx];
+  const bands = lvlDef.bands;
+
+  // Wide floor
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(24, 60), MAT.basalt.clone());
+  floor.rotation.x = -Math.PI/2; floor.position.set(0, -0.05, -16);
+  sceneGroup.add(floor);
+
+  // Horizontal lava bands (run left-right at fixed Z positions)
+  bands.forEach((b, i) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(18, BAND_HALF*2), MAT.lava.clone());
+    m.rotation.x = -Math.PI/2;
+    m.position.set(0, 0.01, b.zC);
+    sceneGroup.add(m);
+    lavaMeshes.push({ mesh:m, ...b });
+
+    // Basalt basins between bands (dark strips on top of floor)
+    if (i < bands.length - 1) {
+      const nextZ = bands[i+1].zC;
+      const gapW = Math.abs(nextZ - b.zC) - BAND_HALF*2;
+      const gapZ = (b.zC + nextZ) / 2;
+      const bridge = new THREE.Mesh(new THREE.PlaneGeometry(18, gapW), MAT.basalt.clone());
+      bridge.rotation.x = -Math.PI/2; bridge.position.set(0, 0.02, gapZ);
+      sceneGroup.add(bridge);
+    }
+  });
+
+  // Entry basalt
+  const entryZ = (bands[0].zC + BAND_HALF) / 2 + 1.5;
+  const entryLen = 2.0 + BAND_HALF + bands[0].zC + BAND_HALF;
+  const entry = new THREE.Mesh(new THREE.PlaneGeometry(18, 4), MAT.basalt.clone());
+  entry.rotation.x = -Math.PI/2; entry.position.set(0, 0.02, 0.5);
+  sceneGroup.add(entry);
+
+  // Exit basalt
+  const lastZ = bands[bands.length-1].zC;
+  const exitLen = Math.abs(EXIT_Z - (lastZ - BAND_HALF)) + 2;
+  const exitBasalt = new THREE.Mesh(new THREE.PlaneGeometry(18, exitLen), MAT.basalt.clone());
+  exitBasalt.rotation.x = -Math.PI/2;
+  exitBasalt.position.set(0, 0.02, (lastZ - BAND_HALF + EXIT_Z) / 2 - 1);
+  sceneGroup.add(exitBasalt);
+
+  // Exit arch
+  const arch = new THREE.Group(); arch.position.set(0, 0, EXIT_Z);
+  const am = MAT.exit.clone();
+  [[-1.4,1.5],[1.4,1.5]].forEach(([x,y]) => {
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.3,3,0.3), am.clone());
+    p.position.set(x, 1.5, 0); arch.add(p);
+  });
+  const top = new THREE.Mesh(new THREE.BoxGeometry(3.1,0.3,0.3), am.clone());
+  top.position.set(0, 3.15, 0); arch.add(top);
+  const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8), am.clone());
+  glowSphere.position.set(0, 1.8, 0); arch.add(glowSphere);
+  sceneGroup.add(arch);
+
+  // Boulders (roll left-to-right through lava bands)
+  lvlDef.boulders.forEach((bDef, bi) => {
+    const band = bands[bDef.band];
+    const bm = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 10),
+      new THREE.MeshStandardMaterial({color:0x332211,emissive:new THREE.Color(0xFF3A1A),emissiveIntensity:0.4}));
+    bm.position.set(-10 + bi * 4, 0.55, band.zC);
+    scene.add(bm);
+    boulderObjs.push({ mesh:bm, bandIdx:bDef.band, spd:2.5 + lvlIdx*0.6 });
+  });
+
+  // Embers
+  for (let i = 0; i < 18; i++) {
+    const band = bands[Math.floor(Math.random() * bands.length)];
+    const em = new THREE.Mesh(new THREE.SphereGeometry(0.05,4,4),
+      new THREE.MeshStandardMaterial({color:0xFF6600,emissive:new THREE.Color(0xFF6600),emissiveIntensity:2,transparent:true}));
+    em.position.set((Math.random()-0.5)*16, 0.2+Math.random()*0.6, band.zC + (Math.random()-0.5)*1.6);
+    scene.add(em);
+    embers.push({mesh:em, life:Math.random()*2, maxLife:1.5+Math.random()*0.5, vy:0.3+Math.random()*0.2, srcZ:band.zC});
+  }
+
+  // Player
+  if (playerMesh) { scene.remove(playerMesh); scene.remove(playerRim); }
+  playerMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.3,0.8,4,8), MAT.player.clone());
+  playerMesh.position.set(0, 0.8, pZ);
+  scene.add(playerMesh);
+  playerRim = new THREE.Mesh(new THREE.CapsuleGeometry(0.33,0.82,4,8), MAT.prim.clone());
+  playerRim.position.set(0, 0.8, pZ);
+  scene.add(playerRim);
+}
+
+// ── CRYSTAL PLACEMENT ─────────────────────────────────────────────────────────
+function placeCrystal(bandIdx, fromAuto) {
+  if (bandIdx < 0) return;
+  const band = lvlDef.bands[bandIdx];
+  // Snap crystal to center of the lava band
+  const cZ = band.zC;
+  const cX = 0; // always on the player's path
+
+  // Don't double-place crystals in same band
+  if (crystals.find(c => c.bandIdx === bandIdx && !c.expired)) return;
+
+  const spd = band.spd;
+  let life = spd <= 1.5 ? 4600 : spd <= 3.5 ? 3700 : 2500;
+  if (band.eddy) life *= 1.4;
+
+  // Timing multiplier
+  const dist = Math.abs(cZ - pZ);
+  const tAhead = (dist / lvlDef.pSpd) * 1000;
+  let mult = 1;
+  if (tAhead >= BEAT_MS*3) mult = 4;
+  else if (tAhead >= BEAT_MS*2) mult = 3;
+  else if (tAhead >= BEAT_MS) mult = 2;
+
+  const geo = new THREE.CylinderGeometry(0.38, 0.48, 0.2, 6);
   const mat = MAT.crystal.clone();
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(worldX, 0.1, worldZ);
-  mesh.castShadow = true;
+  mesh.position.set(cX, 0.12, cZ);
   scene.add(mesh);
 
-  // Shadow mesh (delayed)
-  const shadowGeo = new THREE.EllipseGeometry(speed * 0.15 + 0.2, 0.12, 12);
-  const shadowMat = MAT.shadow.clone();
-  const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-  shadowMesh.rotation.x = -Math.PI / 2;
-  shadowMesh.position.set(worldX + speed * 0.15, 0.03, worldZ + 0.1);
-  scene.add(shadowMesh);
+  // Shadow ellipse (reveals current direction/speed)
+  const sGeo = new THREE.EllipseGeometry(spd*0.13+0.18, 0.1, 12);
+  const sMat = new THREE.MeshBasicMaterial({color:0xF5A030,transparent:true,opacity:0.55});
+  const shadow = new THREE.Mesh(sGeo, sMat);
+  shadow.rotation.x = -Math.PI/2;
+  shadow.position.set(cX + spd*0.13, 0.025, cZ + 0.12);
+  shadow.visible = false;
+  scene.add(shadow);
 
-  // Timing multiplier (how far ahead of player Z)
-  const distAhead = Math.abs(worldZ - playerZ);
-  const timeAheadMs = (distAhead / levelDef.playerSpeed) * 1000;
-  let mult = 1;
-  if (timeAheadMs >= BEAT_MS * 3) mult = 4;
-  else if (timeAheadMs >= BEAT_MS * 2) mult = 3;
-  else if (timeAheadMs >= BEAT_MS) mult = 2;
+  crystals.push({mesh, shadow, bandIdx, cZ, born:performance.now(), life, mult, eddy:!!band.eddy, scored:false, expired:false});
+  playArp();
 
-  const crystal = {
-    mesh,
-    shadowMesh,
-    x: worldX,
-    z: worldZ,
-    channelIndex,
-    lifetime,
-    age: 0,
-    shadowShown: false,
-    melting: false,
-    meltStarted: false,
-    timingMult: mult,
-    isEddy,
-    crackMeshes: []
-  };
-
-  sceneObjects.crystals.push(crystal);
-
-  if (!fromIdle) {
-    soundCrystallize();
-    if (firstCrystalEver) {
-      firstCrystalEver = false;
-      // Time-slow effect (visual only — brief bloom pulse)
-      bloomPass.strength = 2.0;
-      setTimeout(() => { bloomPass.strength = 0.8; }, 638);
-    }
-    playArpNote();
+  // Score placement bonus
+  if (!fromAuto) {
+    score += 10 * mult;
+    hasActed = true;
   }
-
-  return crystal;
 }
 
-function updateCrystals(dt) {
-  for (let i = sceneObjects.crystals.length - 1; i >= 0; i--) {
-    const c = sceneObjects.crystals[i];
-    c.age += dt * 1000;
-
-    // Show shadow after 200ms
-    if (!c.shadowShown && c.age > 200) {
-      c.shadowShown = true;
-      c.shadowMesh.material.opacity = 0.55;
+// ── CRYSTAL UPDATE ────────────────────────────────────────────────────────────
+function updateCrystals(now, dt) {
+  for (let i = crystals.length-1; i >= 0; i--) {
+    const c = crystals[i];
+    if (c.expired) { scene.remove(c.mesh); if(c.shadow) scene.remove(c.shadow); crystals.splice(i,1); continue; }
+    const age = now - c.born;
+    const frac = age / c.life;
+    // Growth animation
+    if (age < 280) c.mesh.scale.setScalar(age/280);
+    else c.mesh.scale.setScalar(1);
+    // Shadow reveal
+    if (age > 180 && c.shadow) c.shadow.visible = true;
+    // Warning phase
+    const warn = c.life - age;
+    if (warn < 800) {
+      const f = warn/800;
+      c.mesh.material.color.setRGB(1, f*0.9, f*0.9);
+      c.mesh.material.emissiveIntensity = 0.9 + Math.sin(now*0.025)*0.6;
+      c.mesh.rotation.y += dt*5;
     }
-
-    // Melt warning (last 800ms)
-    const remaining = c.lifetime - c.age;
-    if (!c.melting && remaining <= 800) {
-      c.melting = true;
-      c.mesh.material = MAT.crystalDanger.clone();
-    }
-
-    // Pulse crystal scale when melting
-    if (c.melting) {
-      const pulse = 1.0 + Math.sin(c.age * 0.02) * 0.06;
-      c.mesh.scale.set(pulse, 1, pulse);
-    }
-
-    // Remove when expired
-    if (c.age >= c.lifetime) {
-      scene.remove(c.mesh);
-      scene.remove(c.shadowMesh);
-      c.crackMeshes.forEach(cm => scene.remove(cm));
-      sceneObjects.crystals.splice(i, 1);
-      soundMelt();
+    if (frac >= 1) {
+      try { if(audioOk && sfxMelt) sfxMelt.triggerAttackRelease('8n'); } catch(e){}
+      c.expired = true;
     }
   }
 }
 
-// ─── BOULDER SYSTEM ──────────────────────────────────────────────────────────
-function updateBoulders(dt) {
-  sceneObjects.boulderMeshes.forEach(b => {
-    if (!b.active) return;
-    b.mesh.position.x += b.direction * b.speed * dt;
-    b.mesh.rotation.z += b.direction * b.speed * dt * 2;
-    b.warnTimer += dt;
+// ── BOULDER UPDATE ────────────────────────────────────────────────────────────
+function updateBoulders(now, dt) {
+  boulderObjs.forEach(b => {
+    b.mesh.position.x += b.spd * dt;
+    if (b.mesh.position.x > 11) b.mesh.position.x = -11;
+    b.mesh.rotation.z += dt * 2;
 
-    // Bounce bounds
-    if (b.mesh.position.x > b.laneX + 9) b.direction = -1;
-    if (b.mesh.position.x < b.laneX - 9) b.direction = 1;
-
-    // Check collision with crystals
-    for (let i = sceneObjects.crystals.length - 1; i >= 0; i--) {
-      const c = sceneObjects.crystals[i];
-      if (c.channelIndex !== b.laneIndex) continue;
-      const dist = Math.abs(c.x - b.mesh.position.x);
-      if (dist < 0.9) {
-        // Boulder hits crystal — check if within 200ms of arrival (simplified: if crystal was placed recently)
-        const justPlaced = c.age < 300;
-        if (justPlaced) {
-          // Shatter
-          score += 500;
-          soundBoulderShatter();
-          scene.remove(c.mesh);
-          scene.remove(c.shadowMesh);
-          sceneObjects.crystals.splice(i, 1);
-          // Boulder bounce back
-          b.direction *= -1;
-          b.mesh.position.x += b.direction * 1.5;
-        } else {
-          // Crystal destroyed
-          scene.remove(c.mesh);
-          scene.remove(c.shadowMesh);
-          sceneObjects.crystals.splice(i, 1);
-          soundMelt();
-        }
-      }
+    // Crystal shatter check
+    const cInBand = crystals.find(c => c.bandIdx === b.bandIdx);
+    if (cInBand && Math.abs(b.mesh.position.x - 0) < 1.2 && !cInBand.expired && now-cInBand.born < 250) {
+      // Crystal placed under boulder in time → SHATTER
+      score += 500;
+      cInBand.expired = true;
+      b.mesh.position.x = -11;
     }
   });
 }
 
-// ─── EMBER PARTICLES ─────────────────────────────────────────────────────────
-function updateEmbers(dt) {
-  sceneObjects.emberParticles.forEach(e => {
-    e.age += dt;
-    if (e.age > e.lifespan) {
-      e.age = 0;
-      const ci = Math.floor(Math.random() * levelDef.numChannels);
-      e.channelX = levelDef.channelXPositions[ci];
-      e.mesh.position.set(
-        e.channelX + (Math.random() - 0.5) * 1.8,
-        0.0,
-        -Math.random() * levelLength
-      );
-      e.lifespan = 1.5 + Math.random() * 0.5;
-      e.riseSpeed = 0.25 + Math.random() * 0.15;
-    }
-    e.mesh.position.y += e.riseSpeed * dt;
-    e.mesh.position.x += e.drift * dt;
-    const t = e.age / e.lifespan;
-    e.mesh.material.opacity = Math.sin(t * Math.PI) * 0.85;
-    const scale = 0.6 + t * 0.4;
-    e.mesh.scale.setScalar(scale);
-  });
-}
-
-// ─── PLAYER MOVEMENT ─────────────────────────────────────────────────────────
-function updatePlayer(dt) {
+// ── PLAYER UPDATE ─────────────────────────────────────────────────────────────
+let pBob = 0;
+function updatePlayer(dt, now) {
   if (gameState !== 'playing') return;
-  if (playerSinking) {
-    playerSinkTimer += dt;
-    playerY = 0.4 - playerSinkTimer * 0.53;
-    if (playerY < -0.8) playerY = -0.8;
-    if (sceneObjects.playerMesh) {
-      sceneObjects.playerMesh.position.set(playerX, playerY, playerZ);
-      if (sceneObjects.playerRim) sceneObjects.playerRim.position.copy(sceneObjects.playerMesh.position);
-    }
+
+  if (pSink > 0) {
+    sinkTimer += dt;
+    playerMesh.position.y = 0.8 - sinkTimer * 0.5;
+    playerRim.position.y = playerMesh.position.y;
+    if (playerMesh.position.y < -0.7) playerMesh.position.y = -0.7;
     return;
   }
-  if (respawnTimer > 0) {
-    respawnTimer -= dt;
-    if (respawnTimer <= 0) {
-      respawnTimer = 0;
-      playerSinking = false;
-      playerSinkTimer = 0;
-      playerZ = checkpointZ;
-      playerY = 0.4;
-      graceActive = false;
-      graceTimer = 0;
-    }
+  if (respTimer > 0) {
+    respTimer -= dt;
+    if (respTimer <= 0) { pSink=0; sinkTimer=0; pZ=chkZ; graceOn=false; graceTimer=0; }
     return;
   }
 
-  // Auto-advance
-  playerZ -= levelDef.playerSpeed * dt;
+  // Advance
+  pZ -= lvlDef.pSpd * dt;
+  pBob += dt;
+  const py = 0.8 + Math.sin(pBob * 3.0) * 0.04;
+  playerMesh.position.set(0, py, pZ);
+  playerRim.position.set(0, py, pZ);
 
-  // Bob
-  playerBobTime += dt;
-  playerY = 0.4 + Math.sin(playerBobTime * 1.4 * Math.PI * 2) * 0.04;
-
-  // Footstep
-  footstepTimer -= dt;
-  if (footstepTimer <= 0) {
-    soundFootstep();
-    footstepTimer = 0.35;
-  }
-
-  // Update mesh
-  if (sceneObjects.playerMesh) {
-    sceneObjects.playerMesh.position.set(playerX, playerY, playerZ);
-    if (sceneObjects.playerRim) sceneObjects.playerRim.position.copy(sceneObjects.playerMesh.position);
-  }
-
-  // Camera follow
-  camera.position.set(0, 12, playerZ + 12);
-  camera.lookAt(0, 0, playerZ - 2);
-  lavaGlow.position.set(0, 0.5, playerZ - 5);
-  rimLight.position.set(-3, 3, playerZ + 2);
+  // Camera
+  camera.position.set(0, 12, pZ + 12);
+  camera.lookAt(0, 0, pZ - 2);
+  lavaGlowL.position.set(0, 0.5, pZ - 6);
+  rimL.position.set(-3, 3, pZ + 2);
 
   // Win check
-  if (playerZ <= exitZ + 1.5) {
-    triggerLevelClear();
-    return;
-  }
+  if (pZ <= EXIT_Z + 1.2) { triggerWin(); return; }
 
-  // Death check — is player over a lava channel with no crystal?
-  checkDeathCondition(dt);
-
-  // Crossings update (every time player Z passes a channel)
-  levelDef.channelXPositions.forEach((cx, ci) => {
-    const leftEdge = cx - 1.0;
-    const rightEdge = cx + 1.0;
-    // Player always at x=0 — check if player Z is in a channel zone
-    // (Track per-channel crossings via crystal system)
-  });
-}
-
-function checkDeathCondition(dt) {
-  if (playerSinking || respawnTimer > 0) return;
-
-  const px = 0; // player always at x=0 for this game
-  // Check if player is over lava
+  // Death check: is player inside a lava band with no crystal?
+  if (!hasActed) return; // no danger before first action
   let overLava = false;
-  let laneIndex = -1;
-  levelDef.channelXPositions.forEach((cx, i) => {
-    if (Math.abs(px - cx) < 1.0) {
-      overLava = true;
-      laneIndex = i;
-    }
+  let inBandIdx = -1;
+  lvlDef.bands.forEach((b, i) => {
+    if (Math.abs(pZ - b.zC) < BAND_HALF) { overLava=true; inBandIdx=i; }
   });
 
-  if (!overLava) {
-    graceActive = false;
-    graceTimer = 0;
-    return;
-  }
-
-  // Check for crystal under player
-  const hasCrystal = sceneObjects.crystals.some(c =>
-    c.channelIndex === laneIndex && Math.abs(c.z - playerZ) < 0.7
-  );
-
-  if (hasCrystal) {
-    graceActive = false;
-    graceTimer = 0;
-    // Count crossing
-    totalCrossings++;
-    if (totalCrossings % 5 === 0) {
-      checkpointZ = playerZ;
-      checkpointCrossings = totalCrossings;
+  if (overLava) {
+    const hasCrystal = crystals.find(c => c.bandIdx === inBandIdx && !c.expired);
+    if (hasCrystal) {
+      graceOn = false; graceTimer = 0;
+      crossings++;
+      if (crossings % 5 === 0) chkZ = pZ;
+      if (!hasCrystal.scored) {
+        hasCrystal.scored = true;
+        score += 100 * hasCrystal.mult + (hasCrystal.eddy ? 50 : 0);
+      }
+    } else {
+      if (!graceOn) { graceOn=true; graceTimer=0; }
+      graceTimer += dt;
+      if (graceTimer >= 0.5) triggerDeath();
     }
   } else {
-    if (!graceActive) {
-      graceActive = true;
-      graceTimer = 0;
-    }
-    graceTimer += dt;
-    if (graceTimer >= 0.5) {
-      triggerDeath();
-    }
+    graceOn = false; graceTimer = 0;
   }
 }
 
 function triggerDeath() {
+  if (pSink > 0 || respTimer > 0) return;
   lives--;
-  noDeathThisLevel = false;
-  playerSinking = true;
-  playerSinkTimer = 0;
-  deathFlashTimer = 0.2;
-  soundDeath();
-
+  pSink = 1;
+  noDeathLvl = false;
+  try { if(audioOk && sfxDeath) sfxDeath.triggerAttackRelease('2n'); } catch(e){}
+  const flash = document.getElementById('flash');
+  flash.style.opacity = '0.65';
+  setTimeout(() => { flash.style.transition='opacity 1s'; flash.style.opacity='0'; }, 80);
   setTimeout(() => {
-    if (lives <= 0) {
-      gameState = 'lose';
-      showGameOver(false);
-    } else {
-      playerSinking = false;
-      playerSinkTimer = 0;
-      respawnTimer = 2.0;
-    }
+    if (lives <= 0) { showGameOver(); }
+    else { pSink=0; sinkTimer=0; respTimer=2.0; }
   }, 1600);
 }
 
-function triggerLevelClear() {
+function triggerWin() {
   if (gameState !== 'playing') return;
   gameState = 'win';
-
-  // Score bonuses
-  if (noDeathThisLevel) score += 1000;
-  const elapsed = Date.now() - levelStartTime;
-  if (elapsed < levelParTime[currentLevel]) {
-    score += Math.floor((levelParTime[currentLevel] - elapsed) / 100);
-  }
-
-  soundLevelClear();
+  if (noDeathLvl) score += 1000;
+  try { if(audioOk && sfxWin) sfxWin.triggerAttackRelease(['A5','C#5','E5'],0.8); } catch(e){}
+  const banner = document.getElementById('levelBanner');
+  banner.textContent = lvlIdx < LEVELS.length-1 ? 'LEVEL CLEAR' : 'YOU WIN!';
+  banner.style.opacity = '1';
   setTimeout(() => {
-    currentLevel++;
-    if (currentLevel >= LEVELS.length) {
-      showGameOver(true);
-    } else {
-      startLevel(currentLevel);
-    }
-  }, 3000);
+    banner.style.opacity = '0';
+    lvlIdx++;
+    if (lvlIdx < LEVELS.length) { startLevel(lvlIdx); }
+    else { showGameOver(true); }
+  }, 2500);
 }
 
-function showGameOver(won) {
-  drawHudGameOver(won);
+function showGameOver(win=false) {
+  gameState = 'over';
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;inset:0;z-index:15;background:rgba(43,16,0,0.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+  d.innerHTML = `<h2 style="color:${win?'#F5D060':'#FF3A1A'};font-size:clamp(24px,6vw,40px);font-family:monospace;text-shadow:0 0 28px currentColor;letter-spacing:0.3em">${win?'CALDERA CROSSED':'GAME OVER'}</h2><p style="color:#EFF0E8;font-size:clamp(14px,3vw,18px);font-family:monospace">Score: ${score}</p><p style="color:#F5D060;font-size:clamp(11px,2.5vw,13px);font-family:monospace;animation:blink 1s infinite">TAP TO RESTART</p>`;
+  document.body.appendChild(d);
+  d.addEventListener('pointerdown', () => { document.body.removeChild(d); startGame(); });
 }
 
-// ─── IDLE ANIMATION ──────────────────────────────────────────────────────────
-function updateIdleAnimation(dt) {
-  if (gameState !== 'start') return;
-  idleTimer += dt;
-
-  // Bob
-  if (sceneObjects.idlePlayer) {
-    idlePlayerY = 0.4 + Math.sin(idleTimer * 1.4 * Math.PI * 2) * 0.04;
-    sceneObjects.idlePlayer.position.y = idlePlayerY;
-  }
-
-  // Every 5s auto-play
-  if (idleTimer > 5.0 && !idleAutoPlay) {
-    idleAutoPlay = true;
-    runIdleSequence();
-  }
-  if (idleTimer > 10.0) {
-    idleTimer = 0;
-    idleAutoPlay = false;
-    // Reset idle crystals
-    if (idleCrystalA) { scene.remove(idleCrystalA.mesh); scene.remove(idleCrystalA.shadowMesh); idleCrystalA = null; }
-    if (idleCrystalB) { scene.remove(idleCrystalB.mesh); scene.remove(idleCrystalB.shadowMesh); idleCrystalB = null; }
-    if (sceneObjects.idlePlayer) sceneObjects.idlePlayer.position.set(0, 0.4, 1.5);
-  }
+function startLevel(idx) {
+  lvlIdx = idx; lvlDef = LEVELS[idx];
+  pZ = 2.0; pSink=0; sinkTimer=0; respTimer=0;
+  graceOn=false; graceTimer=0; chkZ=2.0; crossings=0;
+  noDeathLvl=true; firstCrystal=true; hasActed=false; pBob=0;
+  buildLevel(idx);
+  const banner = document.getElementById('levelBanner');
+  banner.textContent = `LEVEL ${idx+1}`;
+  banner.style.opacity='1';
+  setTimeout(()=>banner.style.opacity='0', 1800);
 }
 
-function runIdleSequence() {
-  // Place crystal A in channel 0, then move player across, place crystal B, cross exit
-  const chA = levelDef.channelXPositions[0];
-  // Place crystal at channel A
-  idleCrystalA = placeCrystal(chA, -0.5, 0, true);
-  if (sceneObjects.idlePlayer) {
-    // Animate player walk to channel A crystal
-    const startZ = sceneObjects.idlePlayer.position.z;
-    const targetZ = -2.5;
-    const dur = 2000;
-    const t0 = Date.now();
-    function walkA() {
-      const t = Math.min(1, (Date.now() - t0) / dur);
-      if (sceneObjects.idlePlayer) sceneObjects.idlePlayer.position.z = startZ + (targetZ - startZ) * t;
-      if (t < 1) requestAnimationFrame(walkA);
-      else {
-        // Place crystal B
-        const chB = levelDef.channelXPositions[Math.min(1, levelDef.numChannels - 1)];
-        idleCrystalB = placeCrystal(chB, -4.5, 1, true);
-      }
-    }
-    requestAnimationFrame(walkA);
-  }
+function startGame() {
+  score=0; lives=3; lvlIdx=0;
+  gameState = 'playing';
+  startLevel(0);
 }
 
-// ─── POINTER INPUT ────────────────────────────────────────────────────────────
-const raycaster = new THREE.Raycaster();
-const pointerVec = new THREE.Vector2();
+// ── POINTER HANDLING ──────────────────────────────────────────────────────────
+const ray = new THREE.Raycaster();
+const pVec = new THREE.Vector2();
+const lavaPlane = new THREE.Plane(new THREE.Vector3(0,1,0), -0.01);
+const target3 = new THREE.Vector3();
 
-canvas.addEventListener('pointerdown', onPointerDown);
-canvas.addEventListener('pointermove', onPointerMove);
-
-let pointerDown = false;
-let lastCrystalX = -99;
-let lastCrystalZ = -99;
-
-function onPointerDown(e) {
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
   if (gameState !== 'playing') return;
-  pointerDown = true;
-  handleTap(e);
-}
-
-function onPointerMove(e) {
-  if (!pointerDown || gameState !== 'playing') return;
-  handleTap(e);
-}
-
-canvas.addEventListener('pointerup', () => { pointerDown = false; });
-canvas.addEventListener('pointercancel', () => { pointerDown = false; });
-
-function handleTap(e) {
   const rect = canvas.getBoundingClientRect();
-  const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  pointerVec.set(nx, ny);
+  pVec.set(
+    (e.clientX - rect.left) / rect.width * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
+  ray.setFromCamera(pVec, camera);
+  if (!ray.ray.intersectPlane(lavaPlane, target3)) return;
 
-  raycaster.setFromCamera(pointerVec, camera);
-  // Intersect with lava plane (y=0.01)
-  const lavaPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.01);
-  const target = new THREE.Vector3();
-  raycaster.ray.intersectPlane(lavaPlane, target);
-  if (!target) return;
-
-  // Check which channel was tapped
-  let tappedChannel = -1;
-  levelDef.channelXPositions.forEach((cx, i) => {
-    if (Math.abs(target.x - cx) < 1.0) {
-      tappedChannel = i;
+  // Find which band was tapped (tap Z closest to a band center that's AHEAD of player)
+  let bestBand = -1, bestDist = 999;
+  lvlDef.bands.forEach((b, i) => {
+    const dz = Math.abs(target3.z - b.zC);
+    if (dz < BAND_HALF * 2.5 && dz < bestDist && b.zC < pZ + 1.0) {
+      bestDist = dz; bestBand = i;
     }
   });
+  if (bestBand >= 0) placeCrystal(bestBand, false);
+}, {passive:false});
 
-  if (tappedChannel === -1) return; // Tapped basalt, no effect
-
-  // Avoid placing crystals too close together
-  const snapX = levelDef.channelXPositions[tappedChannel];
-  const distFromLast = Math.sqrt((snapX - lastCrystalX) ** 2 + (target.z - lastCrystalZ) ** 2);
-  if (distFromLast < 0.6) return;
-
-  lastCrystalX = snapX;
-  lastCrystalZ = target.z;
-
-  placeCrystal(snapX, target.z, tappedChannel, false);
-}
-
-// ─── HUD DRAWING ─────────────────────────────────────────────────────────────
-function drawHud() {
-  ensureHud();
-  if (!hud) return;
-  hud.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
-
-  if (gameState !== 'playing' && gameState !== 'dead' && gameState !== 'win' && gameState !== 'lose') return;
-
-  const W = hudCanvas.width;
-  const H = hudCanvas.height;
-
-  // Score
-  hud.font = 'bold 22px monospace';
-  hud.fillStyle = '#F5D060';
-  hud.textAlign = 'left';
-  hud.fillText(`${score}`, 24, 36);
-
-  // Level
-  hud.font = '14px monospace';
-  hud.fillStyle = '#EFF0E8';
-  hud.fillText(`LEVEL ${currentLevel + 1}`, 24, 56);
-
-  // Lives (crystal icons)
-  for (let i = 0; i < 3; i++) {
-    const x = W - 36 - i * 28;
-    const y = 24;
-    hud.beginPath();
-    hud.arc(x, y, 9, 0, Math.PI * 2);
-    if (i < lives) {
-      hud.fillStyle = '#F5D060';
-      hud.fill();
-    } else {
-      hud.strokeStyle = '#F5D060';
-      hud.lineWidth = 1.5;
-      hud.stroke();
+// ── EMBERS ────────────────────────────────────────────────────────────────────
+function updateEmbers(dt) {
+  for (let i = embers.length-1; i >= 0; i--) {
+    const e = embers[i];
+    e.life += dt;
+    e.mesh.position.y += e.vy * dt;
+    e.mesh.material.opacity = Math.sin(e.life/e.maxLife * Math.PI) * 0.85;
+    if (e.life >= e.maxLife) {
+      e.mesh.position.set((Math.random()-0.5)*16, 0.2, e.srcZ + (Math.random()-0.5)*1.6);
+      e.life = 0;
     }
   }
-
-  // Death flash
-  if (deathFlashTimer > 0) {
-    hud.fillStyle = `rgba(255,58,26,${deathFlashTimer / 0.2 * 0.4})`;
-    hud.fillRect(0, 0, W, H);
-  }
-
-  // Vignette
-  const vg = hud.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.7);
-  vg.addColorStop(0, 'rgba(43,16,0,0)');
-  vg.addColorStop(1, 'rgba(43,16,0,0.4)');
-  hud.fillStyle = vg;
-  hud.fillRect(0, 0, W, H);
-
-  // Grace warning
-  if (graceActive) {
-    const graceAlpha = graceTimer / 0.5;
-    hud.fillStyle = `rgba(255,58,26,${graceAlpha * 0.15})`;
-    hud.fillRect(0, 0, W, H);
-    hud.font = 'bold 18px monospace';
-    hud.fillStyle = `rgba(255,58,26,${graceAlpha})`;
-    hud.textAlign = 'center';
-    hud.fillText('PLATFORM!', W / 2, H * 0.65);
-    hud.textAlign = 'left';
-  }
-
-  // Win/level clear overlay
-  if (gameState === 'win') {
-    hud.fillStyle = 'rgba(20,8,2,0.6)';
-    hud.fillRect(0, 0, W, H);
-    hud.font = 'bold 36px monospace';
-    hud.fillStyle = '#F5D060';
-    hud.textAlign = 'center';
-    hud.fillText(currentLevel >= LEVELS.length ? 'YOU WIN!' : 'LEVEL CLEAR', W / 2, H / 2 - 20);
-    hud.font = '18px monospace';
-    hud.fillStyle = '#EFF0E8';
-    hud.fillText(`SCORE: ${score}`, W / 2, H / 2 + 20);
-    hud.textAlign = 'left';
-  }
 }
 
-function drawHudGameOver(won) {
-  ensureHud();
-  if (!hud) return;
-  hud.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
-  const W = hudCanvas.width;
-  const H = hudCanvas.height;
-
-  hud.fillStyle = 'rgba(20,8,2,0.82)';
-  hud.fillRect(0, 0, W, H);
-  hud.font = 'bold 40px monospace';
-  hud.fillStyle = won ? '#F5D060' : '#FF3A1A';
-  hud.textAlign = 'center';
-  hud.fillText(won ? 'VICTORY!' : 'GAME OVER', W / 2, H / 2 - 40);
-  hud.font = '20px monospace';
-  hud.fillStyle = '#EFF0E8';
-  hud.fillText(`SCORE: ${score}`, W / 2, H / 2);
-  hud.font = '14px monospace';
-  hud.fillStyle = '#F5D060';
-  hud.fillText('Tap to restart', W / 2, H / 2 + 40);
-  hud.textAlign = 'left';
-
-  // Restart on tap
-  canvas.addEventListener('pointerdown', () => {
-    score = 0;
-    lives = 3;
-    currentLevel = 0;
-    noDeathThisLevel = true;
-    firstCrystalEver = true;
-    hud.clearRect(0, 0, W, H);
-    startLevel(0);
-  }, { once: true });
+// ── HUD ───────────────────────────────────────────────────────────────────────
+function drawHud() {
+  const c = ensureCtx(); if (!c) return;
+  c.clearRect(0, 0, hud.width, hud.height);
+  if (gameState !== 'playing' && gameState !== 'win') return;
+  const W = hud.width, H = hud.height;
+  c.textAlign = 'left'; c.font = 'bold 22px monospace';
+  c.shadowColor = '#F5D060'; c.shadowBlur = 14;
+  c.fillStyle = '#F5D060'; c.fillText(String(score), 22, 38);
+  c.shadowBlur = 0;
+  c.textAlign = 'right'; c.fillStyle = '#FF3A1A'; c.font = 'bold 20px monospace';
+  c.fillText('♥'.repeat(Math.max(0, lives)), W-20, 38);
+  c.textAlign = 'center'; c.fillStyle = '#EFF0E8'; c.globalAlpha = 0.65;
+  c.font = '12px monospace'; c.fillText('LEVEL '+(lvlIdx+1), W/2, 34);
+  c.globalAlpha = 1;
 }
 
-// ─── LEVEL START ──────────────────────────────────────────────────────────────
-function startLevel(levelIndex) {
-  currentLevel = levelIndex;
-  gameState = 'playing';
-  lives = 3;
-  noDeathThisLevel = true;
-  playerZ = 2.0;
-  playerX = 0;
-  playerY = 0.4;
-  playerBobTime = 0;
-  playerSinking = false;
-  playerSinkTimer = 0;
-  respawnTimer = 0;
-  graceActive = false;
-  graceTimer = 0;
-  footstepTimer = 0;
-  deathFlashTimer = 0;
-  totalCrossings = 0;
-  checkpointZ = 2.0;
-  checkpointCrossings = 0;
-  multiplierChain = 0;
-  levelStartTime = Date.now();
-  lastCrystalX = -99;
-  lastCrystalZ = -99;
-
-  buildScene(levelIndex, false);
-
-  // Camera
-  camera.position.set(0, 12, playerZ + 12);
-  camera.lookAt(0, 0, playerZ - 2);
-
-  startAmbientDrone();
-}
-
-// ─── AUDIO ────────────────────────────────────────────────────────────────────
-let audioInitialized = false;
-let ambientDrone = null;
-let ambientLFO = null;
-let ambientDroneGain = null;
-let arpNotes = ['A5','B5','C6','E5','G5','A6','C#5','E6'];
-let arpIndex = 0;
-let arpSynth = null;
-let crystallizeSynth = null;
-let meltSynth = null;
-let meltFilter = null;
-let footstepSynth = null;
-let boulderSynth = null;
-let deathSynth = null;
-let levelClearSynth = null;
-let levelClearVerb = null;
-
-async function initAudio() {
-  if (audioInitialized) return;
-  audioInitialized = true;
-  await Tone.start();
-
-  // Ambient drone — sine at 42Hz with LFO wobble
-  ambientDroneGain = new Tone.Gain(0.18).toDestination();
-  ambientDrone = new Tone.Synth({
-    oscillator: { type: 'sine' },
-    envelope: { attack: 2, decay: 0, sustain: 1, release: 2 }
-  }).connect(ambientDroneGain);
-
-  // Arp synth
-  arpSynth = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'triangle' },
-    envelope: { attack: 0.01, decay: 0.3, sustain: 0.0, release: 0.3 }
-  }).toDestination();
-  arpSynth.volume.value = -14;
-
-  // Crystallize
-  crystallizeSynth = new Tone.Synth({
-    oscillator: { type: 'triangle' },
-    envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.08 }
-  }).toDestination();
-  crystallizeSynth.volume.value = -8;
-
-  // Melt — noise synth
-  meltFilter = new Tone.Filter({ frequency: 3000, type: 'lowpass', rolloff: -24 }).toDestination();
-  meltSynth = new Tone.NoiseSynth({
-    noise: { type: 'white' },
-    envelope: { attack: 0.05, decay: 0.7, sustain: 0, release: 0.1 }
-  }).connect(meltFilter);
-  meltSynth.volume.value = -18;
-
-  // Footstep
-  footstepSynth = new Tone.Synth({
-    oscillator: { type: 'triangle' },
-    envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.05 }
-  }).toDestination();
-  footstepSynth.volume.value = -20;
-
-  // Boulder / death
-  boulderSynth = new Tone.MembraneSynth({
-    pitchDecay: 0.15,
-    octaves: 6,
-    envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.1 }
-  }).toDestination();
-  boulderSynth.volume.value = -10;
-
-  deathSynth = new Tone.NoiseSynth({
-    noise: { type: 'white' },
-    envelope: { attack: 0.05, decay: 1.4, sustain: 0, release: 0.1 }
-  }).toDestination();
-  deathSynth.volume.value = -14;
-
-  // Level clear
-  levelClearVerb = new Tone.Reverb({ decay: 3, wet: 0.7 }).toDestination();
-  levelClearSynth = new Tone.PolySynth(Tone.Synth, {
-    envelope: { attack: 0.01, decay: 0.3, sustain: 0.6, release: 2.0 }
-  }).connect(levelClearVerb);
-  levelClearSynth.volume.value = -10;
-}
-
-function startAmbientDrone() {
-  if (!audioInitialized || !ambientDrone) return;
-  try {
-    ambientDrone.triggerAttack('42');
-  } catch(e) { /* ignore */ }
-}
-
-function soundCrystallize() {
-  if (!audioInitialized || !crystallizeSynth) return;
-  try { crystallizeSynth.triggerAttackRelease(1200, '32n'); } catch(e) {}
-}
-
-function soundMelt() {
-  if (!audioInitialized || !meltSynth) return;
-  try {
-    meltFilter.frequency.setValueAtTime(3000, Tone.now());
-    meltFilter.frequency.linearRampToValueAtTime(400, Tone.now() + 0.8);
-    meltSynth.triggerAttackRelease('8n');
-  } catch(e) {}
-}
-
-function soundFootstep() {
-  if (!audioInitialized || !footstepSynth) return;
-  try {
-    const freq = footstepSide === 0 ? 880 : 660;
-    footstepSide = 1 - footstepSide;
-    footstepSynth.triggerAttackRelease(freq, '32n');
-  } catch(e) {}
-}
-
-function soundBoulderShatter() {
-  if (!audioInitialized || !boulderSynth) return;
-  try { boulderSynth.triggerAttackRelease('40', '8n'); } catch(e) {}
-}
-
-function soundDeath() {
-  if (!audioInitialized || !deathSynth) return;
-  try { deathSynth.triggerAttackRelease('4n'); } catch(e) {}
-}
-
-function soundLevelClear() {
-  if (!audioInitialized || !levelClearSynth) return;
-  try { levelClearSynth.triggerAttackRelease(['A5','C#5','E5','A6'], '2n'); } catch(e) {}
-}
-
-function playArpNote() {
-  if (!audioInitialized || !arpSynth) return;
-  try {
-    const note = arpNotes[arpIndex % arpNotes.length];
-    arpSynth.triggerAttackRelease(note, '16n');
-    arpIndex++;
-  } catch(e) {}
-}
-
-// ─── SCREEN FLOW ──────────────────────────────────────────────────────────────
-// Build idle start scene immediately
-buildScene(0, true);
-
+// ── SCREEN FLOW ───────────────────────────────────────────────────────────────
 document.getElementById('startScreen').addEventListener('pointerdown', () => {
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('instructionsScreen').classList.remove('hidden');
+  const s = document.getElementById('startScreen');
+  s.classList.add('hidden');
+  setTimeout(() => s.style.display='none', 350);
+  initAudio().catch(()=>{});
+  const ins = document.getElementById('instrScreen');
+  ins.style.display='flex';
+  requestAnimationFrame(() => ins.classList.remove('hidden'));
   gameState = 'instructions';
-  initAudio().catch(() => {});
-}, { once: true });
+}, {once:true});
 
-document.getElementById('instructionsScreen').addEventListener('pointerdown', () => {
-  document.getElementById('instructionsScreen').style.opacity = '0';
-  setTimeout(() => {
-    document.getElementById('instructionsScreen').classList.add('hidden');
-    startLevel(0);
-  }, 300);
-}, { once: true });
+document.getElementById('instrScreen').addEventListener('pointerdown', () => {
+  const ins = document.getElementById('instrScreen');
+  ins.classList.add('hidden');
+  setTimeout(() => { ins.style.display='none'; startGame(); }, 310);
+}, {once:true});
 
-// ─── MAIN LOOP ────────────────────────────────────────────────────────────────
-function animate() {
-  requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.05);
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+let lastT = performance.now();
+// Build idle scene (start screen)
+buildLevel(0);
 
-  // Exit arch pulse
-  if (sceneObjects.exitArch) {
-    const pulse = Math.sin(Date.now() * 0.00147 * Math.PI * 2) * 0.3 + 0.7;
-    if (sceneObjects.exitLight) sceneObjects.exitLight.intensity = pulse * 2.5;
+function loop(ts) {
+  requestAnimationFrame(loop);
+  const dt = Math.min((ts - lastT) / 1000, 0.05); lastT = ts;
+  const now = ts;
+
+  if (gameState === 'playing' || gameState === 'win') {
+    updatePlayer(dt, now);
+    updateCrystals(now, dt);
+    updateBoulders(now, dt);
+    updateEmbers(dt);
+    // Lava glow pulse
+    lavaMeshes.forEach(l => { l.mesh.material.emissiveIntensity = 1.3 + Math.sin(now*0.002)*0.4; });
+    // Exit arch pulse
+    const archGroup = sceneGroup.children.find(c => c.isGroup);
+    if (archGroup) archGroup.children.forEach(c => { if(c.material?.emissive) c.material.emissiveIntensity = 1.5+Math.sin(now*0.0016*Math.PI)*0.5; });
+    drawHud();
+  } else if (gameState === 'start' || gameState === 'instructions') {
+    // Idle: player character bobs at start
+    if (playerMesh) {
+      playerMesh.position.y = 0.8 + Math.sin(now*0.002)*0.06;
+      playerRim.position.y = playerMesh.position.y;
+    }
+    lavaMeshes.forEach(l => { l.mesh.material.emissiveIntensity = 1.1 + Math.sin(now*0.002)*0.4; });
   }
 
-  if (gameState === 'start') {
-    updateIdleAnimation(dt);
-    updateEmbers(dt);
-    updateCrystals(dt);
-  } else if (gameState === 'playing') {
-    updatePlayer(dt);
-    updateCrystals(dt);
-    updateBoulders(dt);
-    updateEmbers(dt);
-    if (deathFlashTimer > 0) deathFlashTimer -= dt;
-  }
-
-  drawHud();
   composer.render();
 }
+requestAnimationFrame(loop);
 
-// ─── RESIZE ───────────────────────────────────────────────────────────────────
+// ── RESIZE ────────────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
-  const w = window.innerWidth, h = window.innerHeight;
-  camera.aspect = w / h;
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+  bloom.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-  composer.setSize(w, h);
-  if (hud) resizeHud();
+  hud.width = window.innerWidth; hud.height = window.innerHeight;
 });
-
-animate();
 </script>
 </body>
 </html>
